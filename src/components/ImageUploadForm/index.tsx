@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { apiService, UploadImageResponse } from '../services/api';
-import './ImageUploadForm.css';
+import { apiService, UploadImageResponse } from '../../services/api';
+import './styles.css';
 
 interface ImageUploadFormProps {
   onUploadSuccess?: (response: UploadImageResponse) => void;

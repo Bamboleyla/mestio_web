@@ -1,33 +1,19 @@
 import React from 'react';
-import ImageUploadForm from './components/ImageUploadForm';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import MainPage from './pages/main';
+import UploadImagePage from './pages/uploadImage';
 
 function App() {
-  const handleUploadSuccess = (response: any) => {
-    console.log('Upload successful:', response);
-    // You can add additional logic here, such as updating a list of uploaded images
-  };
-
-  const handleUploadError = (error: string) => {
-    console.error('Upload failed:', error);
-    // You can add additional error handling logic here
-  };
-
   return (
-    <div className="App">
-      <div className="container">
-        <header className="App-header">
-          <h1>Image Upload System</h1>
-          <p>Upload images for events using this form</p>
-        </header>
-        <main>
-          <ImageUploadForm
-            onUploadSuccess={handleUploadSuccess}
-            onUploadError={handleUploadError}
-          />
-        </main>
-      </div>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<MainPage />} />
+        <Route path="/upload-image" element={<UploadImagePage />} />
+        {/* Add routes for create event and create location when they are ready */}
+        <Route path="/create-event" element={<div>Create Event Page</div>} />
+        <Route path="/create-location" element={<div>Create Location Page</div>} />
+      </Routes>
+    </Router>
   );
 }
 
