@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { apiService, EventRequest, EventCategory, Location } from '../../services/api';
 import styles from './styles.module.scss';
+import HomeButton from '../../components/HomeButton';
 
 const CreateEventPage: React.FC = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState<Pick<EventRequest, 'title' | 'location_id' | 'category_id' | 'description'>>({
     title: '',
     location_id: 0,
@@ -21,7 +24,7 @@ const CreateEventPage: React.FC = () => {
   };
 
   // Initialize with one schedule item
-  const [schedule, setSchedule] = useState<ScheduleItem[]>([
+ const [schedule, setSchedule] = useState<ScheduleItem[]>([
     { date: null, times: [{ time: '', price: 0 }] }
   ]);
   const [loading, setLoading] = useState(false);
@@ -53,7 +56,7 @@ const CreateEventPage: React.FC = () => {
     fetchLocations();
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+ const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -91,7 +94,7 @@ const CreateEventPage: React.FC = () => {
           item.times
             .filter(t => t.time)
             .map(t => ({
-              date: `${item.date!.toISOString().split('T')[0]}T${t.time}:00.000+03:00`,
+              date: `${item.date!.toISOString().split('T')[0]}T${t.time}:00.000+05:0`,
               price: t.price,
             }))
         );
@@ -119,6 +122,8 @@ const CreateEventPage: React.FC = () => {
       });
       setDuration(null);
       setSchedule([{ date: null, times: [{ time: '', price: 0 }] }]);
+      // Navigate to upload image page with the new event ID
+      navigate(`/upload-image?eventId=${eventId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -128,11 +133,13 @@ const CreateEventPage: React.FC = () => {
 
   return (
     <div className="App">
+      <HomeButton />
       <div className="container">
         <header className="App-header">
           <h1>Create New Event</h1>
         </header>
         <main>
+
           <form onSubmit={handleSubmit} className={styles.container}>
             <div className={styles.formGroup}>
               <label htmlFor="title" className={styles.label}>Title:</label>

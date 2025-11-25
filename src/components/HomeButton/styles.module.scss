@@ -1,0 +1,12 @@
+.homeIcon {
+  font-size: 1.5rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+
+  &:hover {
+    color: #007bff;
+  }
+}

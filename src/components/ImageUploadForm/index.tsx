@@ -1,17 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiService, UploadImageResponse } from '../../services/api';
 import './styles.css';
 
 interface ImageUploadFormProps {
   onUploadSuccess?: (response: UploadImageResponse) => void;
   onUploadError?: (error: string) => void;
+  initialEventId?: string;
 }
 
 const ImageUploadForm: React.FC<ImageUploadFormProps> = ({
   onUploadSuccess,
   onUploadError,
+  initialEventId = '',
 }) => {
-  const [eventId, setEventId] = useState<string>('');
+  const [eventId, setEventId] = useState<string>(initialEventId);
+  
+  // Update eventId when initialEventId changes (e.g., when passed from URL)
+  useEffect(() => {
+    if (initialEventId) {
+      setEventId(initialEventId);
+    }
+  }, [initialEventId]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -139,7 +148,7 @@ const ImageUploadForm: React.FC<ImageUploadFormProps> = ({
             value={eventId}
             onChange={(e) => setEventId(e.target.value)}
             placeholder="Enter event ID"
-            disabled={isUploading}
+            disabled={isUploading || !!initialEventId}
             min="1"
             className={error && !validateEventId(eventId) ? 'error' : ''}
           />
