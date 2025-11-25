@@ -11,15 +11,21 @@ const MainPage: React.FC = () => {
         </header>
         <main>
           <nav>
-            <ul>
-              <li>
-                <Link to="/upload-image">Загрузка изображений</Link>
+            <ul className="icon-nav">
+              <li className="icon-item">
+                <Link to="/upload-image" title="Загрузка изображений" className="icon-link">
+                  <span className="icon">🖼️</span>
+                </Link>
               </li>
-              <li>
-                <Link to="/create-event">Создание мероприятие</Link>
+              <li className="icon-item">
+                <Link to="/create-event" title="Создание мероприятие" className="icon-link">
+                  <span className="icon">📅</span>
+                </Link>
               </li>
-              <li>
-                <Link to="/create-location">Создать локацию</Link>
+              <li className="icon-item">
+                <Link to="/create-location" title="Создать локацию" className="icon-link">
+                  <span className="icon">📍</span>
+                </Link>
               </li>
             </ul>
           </nav>
