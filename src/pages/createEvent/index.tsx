@@ -5,12 +5,14 @@ import { apiService, EventRequest, EventCategory, Location } from '../../service
 import styles from './styles.module.scss';
 
 const CreateEventPage: React.FC = () => {
-  const [formData, setFormData] = useState<Omit<EventRequest, 'start_date' | 'finish_date' | 'price'>>({
+  const [formData, setFormData] = useState<Pick<EventRequest, 'title' | 'location_id' | 'category_id' | 'description'>>({
     title: '',
     location_id: 0,
     category_id: 0,
     description: '',
   });
+
+  const [duration, setDuration] = useState<number | null>(null);
 
   // Define schedule item type
   type ScheduleItem = {
@@ -22,7 +24,7 @@ const CreateEventPage: React.FC = () => {
   const [schedule, setSchedule] = useState<ScheduleItem[]>([
     { date: null, times: [{ time: '', price: 0 }] }
   ]);
- const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [categories, setCategories] = useState<EventCategory[]>([]);
@@ -74,7 +76,7 @@ const CreateEventPage: React.FC = () => {
     setSuccess(null);
 
     try {
-      // For now, just validate that we have schedule data
+      // Validate that we have schedule data
       const hasValidSchedule = schedule.some(item => item.date && item.times.length > 0 && item.times.some(t => t.time));
       if (!hasValidSchedule) {
         setError('Please enter at least one date and time for the event');
@@ -82,13 +84,28 @@ const CreateEventPage: React.FC = () => {
         return;
       }
 
-      // In the future, we'll transform schedule data to match the API requirements
-      // For now, we'll use a placeholder start_date and finish_date
-      const eventData = {
+      // Transform schedule data to match the API requirements
+      const schedules = schedule
+        .filter(item => item.date && item.times.some(t => t.time))
+        .flatMap(item =>
+          item.times
+            .filter(t => t.time)
+            .map(t => ({
+              date: `${item.date!.toISOString().split('T')[0]}T${t.time}:00.000+03:00`,
+              price: t.price,
+            }))
+        );
+
+      if (schedules.length === 0) {
+        setError('Please enter at least one valid schedule item');
+        setLoading(false);
+        return;
+      }
+
+      const eventData: EventRequest = {
         ...formData,
-        start_date: schedule[0].date ? `${schedule[0].date.toISOString().split('T')[0]}T${schedule[0].times[0]?.time || '00:00'}:00` : '',
-        finish_date: schedule[0].date ? `${schedule[0].date.toISOString().split('T')[0]}T${schedule[0].times[0]?.time || '23:59'}:00` : '',
-        price: schedule[0].times[0]?.price || 0,
+        schedules,
+        duration,
       };
 
       const eventId = await apiService.createEvent(eventData);
@@ -100,6 +117,7 @@ const CreateEventPage: React.FC = () => {
         category_id: 0,
         description: '',
       });
+      setDuration(null);
       setSchedule([{ date: null, times: [{ time: '', price: 0 }] }]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -146,7 +164,7 @@ const CreateEventPage: React.FC = () => {
                   </option>
                 ))}
               </select>
-            </div>           
+            </div>
 
             <div className={styles.formGroup}>
               <label htmlFor="category_id" className={styles.label}>Category:</label>
@@ -179,124 +197,137 @@ const CreateEventPage: React.FC = () => {
               />
             </div>
 
+            <div className={styles.formGroup}>
+              <label htmlFor="duration" className={styles.label}>Duration (minutes):</label>
+              <input
+                type="number"
+                id="duration"
+                name="duration"
+                value={duration ?? ''}
+                onChange={(e) => setDuration(parseInt(e.target.value) || null)}
+                min="0"
+                className={styles.input}
+              />
+            </div>
+
             {/* Schedule Section */}
             <div className={styles.formGroup}>
-                          <label className={styles.label}>Schedule:</label>
-                          {schedule.map((item, itemIndex) => (
-                            <div key={itemIndex} className={styles.scheduleItem} style={{ position: 'relative' }}>
-                              {itemIndex > 0 && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const newSchedule = [...schedule];
-                                    newSchedule.splice(itemIndex, 1);
-                                    setSchedule(newSchedule);
-                                  }}
-                                  className={styles.removeButton}
-                                  style={{ position: 'absolute', top: -22, right: 5 }}
-                                  title="Remove this date"
-                                >
-                                  ×
-                                </button>
-                              )}
-                              <div className={styles.flexRow}>
-                                <div className={styles.datePickerWrapper}>
-                                  <label className={styles.label}>Date:</label>
-                                  <DatePicker
-                                   selected={item.date}
-                                   onChange={(date) => {
-                                     const newSchedule = [...schedule];
-                                     newSchedule[itemIndex].date = date;
-                                     setSchedule(newSchedule);
-                                   }}
-                                   dateFormat="yyyy-MM-dd"
-                                   required
-                                   className={styles.datePicker}
-                                 />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newSchedule = [...schedule];
-                                      // Copy values from previous item if not the first item
-                                      const prevItem = itemIndex > 0 ? schedule[itemIndex - 1] : { date: null, times: [{ time: '', price: 0 }] };
-                                      newSchedule.splice(itemIndex + 1, 0, {
-                                        date: prevItem.date, // Copy date from previous item
-                                        times: [...prevItem.times] // Copy all time/price pairs from previous item
-                                      });
-                                      setSchedule(newSchedule);
-                                    }}
-                                    className={styles.addButton}
-                                    title="Add new date row"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                
-                                <div className={styles.timesContainer}>
-                                  <div className={styles.timesList}>
-                                    {item.times.map((timePrice, timeIndex) => (
-                                      <div key={timeIndex} className={styles.flexRow}>
-                                        <div className={styles.flexCol}>
-                                          <label className={styles.label}>Time:</label>
-                                          <input
-                                            type="time"
-                                            value={timePrice.time}
-                                            onChange={(e) => {
-                                              const newSchedule = [...schedule];
-                                              newSchedule[itemIndex].times[timeIndex].time = e.target.value;
-                                              setSchedule(newSchedule);
-                                            }}
-                                            className={styles.timeInput}
-                                          />
-                                        </div>
-                                        <div className={styles.flexCol}>
-                                          <label className={styles.label}>Price:</label>
-                                          <input
-                                            type="number"
-                                            value={timePrice.price || ''}
-                                            onChange={(e) => {
-                                              const newSchedule = [...schedule];
-                                              newSchedule[itemIndex].times[timeIndex].price = parseFloat(e.target.value) || 0;
-                                              setSchedule(newSchedule);
-                                            }}
-                                            step="0.01"
-                                            className={styles.priceInput}
-                                          />
-                                        </div>
-                                        {item.times.length > 1 && (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const newSchedule = [...schedule];
-                                              if (newSchedule[itemIndex].times.length > 1) {
-                                                newSchedule[itemIndex].times.splice(timeIndex, 1);
-                                                setSchedule(newSchedule);
-                                              }
-                                            }}
-                                            className={styles.removeButton}
-                                          >
-                                            ×
-                                          </button>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newSchedule = [...schedule];
-                                      newSchedule[itemIndex].times.push({ time: '', price: 0 });
-                                      setSchedule(newSchedule);
-                                    }}
-                                    className={styles.addTimeButton}
-                                  >
-                                    Add Time/Price
-                                  </button>
-                                </div>                    
-                              </div>
+              <label className={styles.label}>Schedule:</label>
+              {schedule.map((item, itemIndex) => (
+                <div key={itemIndex} className={styles.scheduleItem} style={{ position: 'relative' }}>
+                  {itemIndex > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newSchedule = [...schedule];
+                        newSchedule.splice(itemIndex, 1);
+                        setSchedule(newSchedule);
+                      }}
+                      className={styles.removeButton}
+                      style={{ position: 'absolute', top: -22, right: 5 }}
+                      title="Remove this date"
+                    >
+                      ×
+                    </button>
+                  )}
+                  <div className={styles.flexRow}>
+                    <div className={styles.datePickerWrapper}>
+                      <label className={styles.label}>Date:</label>
+                      <DatePicker
+                        selected={item.date}
+                        onChange={(date) => {
+                          const newSchedule = [...schedule];
+                          newSchedule[itemIndex].date = date;
+                          setSchedule(newSchedule);
+                        }}
+                        dateFormat="yyyy-MM-dd"
+                        required
+                        className={styles.datePicker}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newSchedule = [...schedule];
+                          // Copy values from previous item if not the first item
+                          const prevItem = itemIndex > 0 ? schedule[itemIndex - 1] : { date: null, times: [{ time: '', price: 0 }] };
+                          newSchedule.splice(itemIndex + 1, 0, {
+                            date: prevItem.date, // Copy date from previous item
+                            times: [...prevItem.times] // Copy all time/price pairs from previous item
+                          });
+                          setSchedule(newSchedule);
+                        }}
+                        className={styles.addButton}
+                        title="Add new date row"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <div className={styles.timesContainer}>
+                      <div className={styles.timesList}>
+                        {item.times.map((timePrice, timeIndex) => (
+                          <div key={timeIndex} className={styles.flexRow}>
+                            <div className={styles.flexCol}>
+                              <label className={styles.label}>Time:</label>
+                              <input
+                                type="time"
+                                value={timePrice.time}
+                                onChange={(e) => {
+                                  const newSchedule = [...schedule];
+                                  newSchedule[itemIndex].times[timeIndex].time = e.target.value;
+                                  setSchedule(newSchedule);
+                                }}
+                                className={styles.timeInput}
+                              />
                             </div>
-                          ))}
-                        </div>            
+                            <div className={styles.flexCol}>
+                              <label className={styles.label}>Price:</label>
+                              <input
+                                type="number"
+                                value={timePrice.price || ''}
+                                onChange={(e) => {
+                                  const newSchedule = [...schedule];
+                                  newSchedule[itemIndex].times[timeIndex].price = parseFloat(e.target.value) || 0;
+                                  setSchedule(newSchedule);
+                                }}
+                                step="0.01"
+                                className={styles.priceInput}
+                              />
+                            </div>
+                            {item.times.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newSchedule = [...schedule];
+                                  if (newSchedule[itemIndex].times.length > 1) {
+                                    newSchedule[itemIndex].times.splice(timeIndex, 1);
+                                    setSchedule(newSchedule);
+                                  }
+                                }}
+                                className={styles.removeButton}
+                              >
+                                ×
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newSchedule = [...schedule];
+                          newSchedule[itemIndex].times.push({ time: '', price: 0 });
+                          setSchedule(newSchedule);
+                        }}
+                        className={styles.addTimeButton}
+                      >
+                        Add Time/Price
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
 
             <button type="submit" disabled={loading} className={styles.submitButton}>
               {loading ? 'Creating...' : 'Create Event'}

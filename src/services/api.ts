@@ -24,12 +24,14 @@ export interface Location {
 
 export interface EventRequest {
   title: string;
-  start_date: string;
-  finish_date: string;
   location_id: number;
   category_id: number;
-  price: number;
+  schedules: {
+    date: string;
+    price: number;
+  }[];
   description: string;
+  duration: number | null;
 }
 
 class ApiService {
